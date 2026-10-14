@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>350병동 이송기록</title>
+<title>이송기록</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
@@ -259,7 +259,7 @@ input::placeholder { color: var(--muted); }
 
 <main>
   <header>
-    <h1>350병동 이송기록</h1>
+    <h1>이송기록</h1>
     <div class="who">
       <label for="who">직원</label>
       <select id="who" aria-label="이송 직원"></select>
@@ -342,7 +342,7 @@ input::placeholder { color: var(--muted); }
   var DESTS = ["병동","영상의학과 1층(심혈관 센터 포함)","영상의학과 지하","내시경센터","심장검사실","호흡기검사실","외래 (외래 검사실 포함)","인공신장실(AK)","전동","재활치료실(지하)","작업치료실(3층)","수술실(회복실)"];
   var METHS = ["침대","스트레처 카트","휠체어","보행","산소 포함"];
   var OTHER = "__other_option__";
-  var DEFAULT_NAMES = ["문건태","간호조무사"];
+  var DEFAULT_NAMES = [];
   var NAMES_KEY = "ward350.names", WHO_KEY = "ward350.who";
 
   var st = { dept: null, dest: null, meth: [] }; // 값 또는 OTHER
@@ -353,8 +353,9 @@ input::placeholder { color: var(--muted); }
   function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 
   var names = load(NAMES_KEY, DEFAULT_NAMES);
-  if (!Array.isArray(names) || !names.length) names = DEFAULT_NAMES.slice();
+  if (!Array.isArray(names)) names = DEFAULT_NAMES.slice();
   var savedWho = load(WHO_KEY, "");
+  if (savedWho && names.indexOf(savedWho) < 0) names.push(savedWho);
 
   function renderNames(selected) {
     var sel = $("who");
@@ -493,6 +494,7 @@ input::placeholder { color: var(--muted); }
   });
 
   renderNames(savedWho);
+  if (!names.length) $("name-add").hidden = false; // 처음 쓰는 폰은 이름 입력칸을 열어 둔다
   chips("dept", DEPTS, "dept", false);
   chips("dest", DESTS, "dest", false);
   chips("meth", METHS, "meth", true);

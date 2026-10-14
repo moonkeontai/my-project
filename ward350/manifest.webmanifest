@@ -1,7 +1,7 @@
 {
-  "name": "350병동 이송기록",
+  "name": "이송기록",
   "short_name": "이송기록",
-  "description": "350병동 환자 이송 기록 폼을 빠르게 채워 여는 입력 도우미",
+  "description": "환자 이송 기록 폼을 빠르게 채워 여는 입력 도우미",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
