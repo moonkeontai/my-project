@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#03060c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="이송기록">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>이송기록</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: 우주선 조종석 계기판. 금속 패널(모서리 절단) 세 장을 세로로 쌓고, 선택값은 점등 스위치, 하단은 경고 스트라이프가 달린 점화 버튼 */
+:root {
+  --bg: #03060c;
+  --metal: #0a111b;
+  --metal-hi: #142036;
+  --edge: #22344d;
+  --edge-hi: #36527d;
+  --fg: #e9f4ff;
+  --muted: #8399b6;
+  --cyan: #33e4ff;
+  --amber: #ffb21e;
+  --amber-deep: #ff7a1a;
+  --green: #47ff9b;
+  --red: #ff4a4a;
+  --on-amber: #1a0f00;
+  --warn: #ffb21e;
+  --font: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-tech: "Orbitron", "Noto Sans KR", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html {
+  background: var(--bg);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--fg); font-family: var(--font);
+  font-size: 16px; line-height: 1.5;
+  padding-inline: 16px; padding-block: 16px 156px;
+}
+
+/* 배경 효과: 별, 회전 레이더, 주사선 */
+.fx {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background-image:
+    radial-gradient(1px 1px at 22px 34px, #fff, transparent),
+    radial-gradient(1px 1px at 96px 120px, #cfe9ff, transparent),
+    radial-gradient(1.5px 1.5px at 150px 60px, #fff, transparent),
+    radial-gradient(1px 1px at 60px 170px, #9fd8ff, transparent),
+    radial-gradient(1px 1px at 178px 150px, #fff, transparent),
+    radial-gradient(70% 45% at 85% -5%, rgba(51, 228, 255, .16), transparent 70%),
+    radial-gradient(60% 40% at 0% 100%, rgba(255, 122, 26, .12), transparent 70%);
+  background-size: 200px 200px, 200px 200px, 200px 200px, 200px 200px, 200px 200px, auto, auto;
+}
+.fx::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 28%;
+  background: linear-gradient(180deg, transparent, rgba(51, 228, 255, .09), transparent);
+  animation: sweep 6s linear infinite;
+}
+.fx::after {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .26) 0 1px, transparent 1px 3px);
+}
+.radar {
+  position: absolute; right: -150px; top: -150px; width: 440px; height: 440px; border-radius: 50%;
+  border: 1px solid rgba(51, 228, 255, .35);
+  background:
+    linear-gradient(rgba(51, 228, 255, .16), rgba(51, 228, 255, .16)) center / 1px 100% no-repeat,
+    linear-gradient(rgba(51, 228, 255, .16), rgba(51, 228, 255, .16)) center / 100% 1px no-repeat,
+    repeating-radial-gradient(circle, transparent 0 46px, rgba(51, 228, 255, .16) 46px 47px),
+    conic-gradient(from 0deg, rgba(51, 228, 255, .42), rgba(51, 228, 255, 0) 24%, transparent);
+  animation: spin 7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes sweep { from { transform: translateY(-100%); } to { transform: translateY(420%); } }
+
+main { position: relative; z-index: 1; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+/* 상단 계기판 타이틀 */
+header {
+  position: relative;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 24px 16px 14px;
+  background: linear-gradient(180deg, var(--metal-hi), var(--metal));
+  border: 1px solid var(--edge-hi);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+}
+header::before {
+  content: ""; position: absolute; left: 16px; top: 8px; width: 44px; height: 8px;
+  background:
+    radial-gradient(circle 4px at 4px 4px, var(--red), transparent 4px),
+    radial-gradient(circle 4px at 20px 4px, var(--amber), transparent 4px);
+  filter: drop-shadow(0 0 4px var(--red));
+}
+header::after {
+  content: ""; position: absolute; left: 52px; top: 8px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 8px var(--green);
+  animation: blink 1.4s steps(2, jump-none) infinite;
+}
+@keyframes blink { 0% { opacity: 1; } 50% { opacity: .15; } 100% { opacity: 1; } }
+h1 {
+  font-family: var(--font-tech); font-size: 1.3125rem; margin: 0; font-weight: 700;
+  letter-spacing: .06em; text-wrap: balance; color: var(--cyan);
+  text-shadow: 0 0 12px rgba(51, 228, 255, .7);
+}
+.who { display: flex; align-items: center; gap: 8px; font-size: .8125rem; color: var(--muted); letter-spacing: .1em; }
+.who select {
+  font: inherit; font-size: .9375rem; color: var(--fg); background: #060d18; max-width: 11em;
+  border: 1px solid var(--edge-hi); border-radius: 4px; padding: 6px 10px; letter-spacing: 0; min-height: 36px;
+}
+
+/* 패널 */
+section {
+  position: relative;
+  background: linear-gradient(180deg, var(--metal-hi), var(--metal) 40%);
+  border: 1px solid var(--edge); padding: 20px 16px 18px;
+  display: flex; flex-direction: column; gap: 20px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+}
+section::before, section::after {
+  content: ""; position: absolute; width: 19px; height: 19px; pointer-events: none;
+  background: linear-gradient(135deg, transparent calc(50% - 1px), var(--cyan) calc(50% - 1px), var(--cyan) calc(50% + 1px), transparent calc(50% + 1px));
+}
+section::before { top: -1px; left: -1px; }
+section::after { bottom: -1px; right: -1px; }
+
+h2 {
+  font-family: var(--font); font-size: .875rem; letter-spacing: .22em; color: var(--amber);
+  font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px;
+  text-shadow: 0 0 10px rgba(255, 178, 30, .5);
+}
+h2::before {
+  content: ""; width: 10px; height: 10px; background: var(--amber);
+  clip-path: polygon(0 0, 100% 50%, 0 100%); box-shadow: 0 0 10px var(--amber);
+}
+h2::after {
+  content: ""; flex: 1; height: 5px;
+  background: repeating-linear-gradient(-45deg, rgba(255, 178, 30, .55) 0 4px, transparent 4px 8px);
+}
+
+.group { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.group > label, .group > .lab { font-weight: 500; font-size: .9375rem; color: var(--fg); }
+
+/* 점등 스위치 */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  position: relative; font: inherit; color: var(--fg);
+  background: linear-gradient(180deg, #19283f, #0c1524);
+  border: 1px solid var(--edge-hi); border-radius: 4px;
+  min-height: 48px; padding: 8px 20px 8px 14px; cursor: pointer; text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), inset 0 -2px 0 rgba(0, 0, 0, .4);
+  transition: box-shadow .15s, transform .08s, border-color .15s;
+}
+.chip::before {
+  content: ""; position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%;
+  background: #2b3b54; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .5);
+}
+.chip:active { transform: translateY(1px) scale(.98); }
+.chip[aria-pressed="true"] {
+  color: var(--on-amber); font-weight: 700; border-color: var(--amber);
+  background: linear-gradient(180deg, #ffcf5c, var(--amber) 45%, var(--amber-deep));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 0 18px rgba(255, 178, 30, .6);
+}
+.chip[aria-pressed="true"]::before { background: var(--green); box-shadow: 0 0 8px var(--green), 0 0 2px #fff inset; }
+.chip:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, .go:focus-visible {
+  outline: 2px solid var(--cyan); outline-offset: 2px;
+}
+.dept .chip { min-width: 68px; text-align: center; padding-inline: 14px; font-family: var(--font-tech); font-weight: 500; font-size: 1.0625rem; }
+.dept .chip[aria-pressed="true"] { font-weight: 700; }
+.dept .chip:last-child { font-family: var(--font); font-size: 1rem; }
+
+.row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+input[type="time"], input[type="date"], input[type="text"] {
+  font: inherit; color: #c8f8ff; background: #040911; border: 1px solid var(--edge-hi);
+  border-radius: 4px; min-height: 48px; padding: 8px 12px; min-width: 0; flex: 1 1 140px;
+  font-family: var(--font-tech); font-size: 1.1875rem; letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px rgba(51, 228, 255, .65);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .7);
+}
+input[type="text"] { font-family: var(--font); font-size: 1rem; letter-spacing: 0; text-shadow: none; color: var(--fg); }
+.group > input { flex: none; width: 100%; }
+input:focus { border-color: var(--cyan); box-shadow: inset 0 2px 6px rgba(0, 0, 0, .7), 0 0 14px rgba(51, 228, 255, .5); }
+input::placeholder { color: var(--muted); }
+.btn {
+  font: inherit; font-weight: 700; color: var(--cyan); background: rgba(51, 228, 255, .07);
+  border: 1px solid var(--cyan); border-radius: 4px; min-height: 48px; padding: 8px 20px; cursor: pointer;
+  letter-spacing: .06em; text-shadow: 0 0 8px rgba(51, 228, 255, .6);
+  transition: box-shadow .15s, background .15s, transform .08s;
+}
+.btn:hover { background: rgba(51, 228, 255, .16); box-shadow: 0 0 16px rgba(51, 228, 255, .5); }
+.btn:active { transform: translateY(1px) scale(.98); }
+.dur {
+  font-family: var(--font-tech); font-size: 1rem; color: var(--green); letter-spacing: .08em;
+  font-variant-numeric: tabular-nums; text-shadow: 0 0 10px rgba(71, 255, 155, .7);
+}
+.other { display: none; }
+.other.on { display: flex; }
+
+/* 하단 점화 바 */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
+  background: linear-gradient(180deg, rgba(3, 6, 12, .8), rgba(3, 6, 12, .97));
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--edge-hi);
+  padding: 16px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.bar::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px;
+  background: repeating-linear-gradient(-45deg, var(--amber) 0 10px, #140c00 10px 20px);
+}
+.bar-in { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.go {
+  display: flex; align-items: center; justify-content: center; min-height: 56px; border-radius: 6px;
+  background: linear-gradient(180deg, #ffd25f, var(--amber) 45%, var(--amber-deep));
+  color: var(--on-amber); font-weight: 700; text-decoration: none; font-size: 1.125rem; letter-spacing: .04em;
+  border: 1px solid #ffe3a0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 0 22px rgba(255, 178, 30, .6);
+  animation: ready 1.8s ease-in-out infinite;
+}
+.go[aria-disabled="true"] {
+  background: repeating-linear-gradient(-45deg, #182233 0 10px, #111a28 10px 20px);
+  color: var(--muted); border-color: var(--edge); cursor: default; box-shadow: none; animation: none;
+}
+@keyframes ready {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 0 14px rgba(255, 178, 30, .45); }
+  50% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 0 34px rgba(255, 178, 30, .9); }
+}
+.hint { font-size: .8125rem; color: var(--muted); margin: 0; text-align: center; }
+.hint.warn { color: var(--warn); }
+.next { align-self: center; }
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="fx" aria-hidden="true"><i class="radar"></i></div>
+
+<main>
+  <header>
+    <h1>이송기록</h1>
+    <div class="who">
+      <label for="who">직원</label>
+      <select id="who" aria-label="이송 직원"></select>
+    </div>
+  </header>
+
+  <section aria-labelledby="s1">
+    <h2 id="s1">호출 받음</h2>
+    <div class="group">
+      <label for="date">이송 날짜</label>
+      <input type="date" id="date">
+    </div>
+    <div class="group">
+      <label for="tcall">호출 받은 시간</label>
+      <div class="row">
+        <input type="time" id="tcall">
+        <button type="button" class="btn" data-now="tcall">지금</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="lab">호출한 부서</span>
+      <div class="chips dept" id="dept"></div>
+      <div class="row other" id="dept-other"><input type="text" id="dept-other-txt" placeholder="부서 직접 입력" aria-label="호출 부서 기타"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s2">
+    <h2 id="s2">이송 정보</h2>
+    <div class="group">
+      <span class="lab">목적지</span>
+      <div class="chips" id="dest"></div>
+      <div class="row other" id="dest-other"><input type="text" id="dest-other-txt" placeholder="목적지 직접 입력" aria-label="목적지 기타"></div>
+    </div>
+    <div class="group">
+      <span class="lab">이송 방법 (여러 개 선택 가능)</span>
+      <div class="chips" id="meth"></div>
+      <div class="row other" id="meth-other"><input type="text" id="meth-other-txt" placeholder="방법 직접 입력" aria-label="이송 방법 기타"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s3">
+    <h2 id="s3">이송 시간</h2>
+    <div class="group">
+      <label for="tstart">시작</label>
+      <div class="row">
+        <input type="time" id="tstart">
+        <button type="button" class="btn" data-now="tstart">지금</button>
+      </div>
+    </div>
+    <div class="group">
+      <label for="tend">종료</label>
+      <div class="row">
+        <input type="time" id="tend">
+        <button type="button" class="btn" data-now="tend">지금</button>
+      </div>
+      <span class="dur" id="dur" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <button type="button" class="btn next" id="reset">다음 이송 새로 시작</button>
+</main>
+
+<div class="bar">
+  <div class="bar-in">
+    <a class="go" id="go" href="#" target="_blank" rel="noopener" aria-disabled="true">입력한 내용으로 폼 열기</a>
+    <p class="hint" id="hint"></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var FORM = "https://docs.google.com/forms/d/e/1FAIpQLSetN0ZsqzQ_rF_SCD01NoigbcgrE26IAObzCvrOs-T0LEgiiQ/viewform";
+  var ID = { who: 1920673300, date: 725028595, call: 540011588, dept: 1315338996, dest: 408639836, meth: 1086772229, start: 1959113412, end: 1215132817 };
+  var DEPTS = ["300","320","220","250","350","200","270","370","390","ICU","ER","옵션 12"];
+  var DESTS = ["병동","영상의학과 1층(심혈관 센터 포함)","수술실(회복실)","영상의학과 지하","내시경센터","심장검사실","호흡기검사실","외래 (외래 검사실 포함)","재활치료실(지하)","작업치료실(3층)","전동","인공신장실(AK)"];
+  var METHS = ["침대","스트레처 카트","휠체어","보행","산소 포함"];
+  var OTHER = "__other_option__";
+  var DEFAULT_NAMES = ["이언석","조민재","간호조무사"]; // 폼의 이름 선택지와 같게 둔다
+  var WHO_KEY = "ward300.who";
+
+  var st = { dept: null, dest: null, meth: [] }; // 값 또는 OTHER
+  var $ = function (id) { return document.getElementById(id); };
+
+  // 이 폰에만 저장 (막혀 있어도 동작에는 지장 없음)
+  function load(k, def) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  var names = DEFAULT_NAMES;
+  var savedWho = load(WHO_KEY, "");
+
+  function renderNames(selected) {
+    var sel = $("who");
+    while (sel.firstChild) sel.removeChild(sel.firstChild);
+    var ph = document.createElement("option");
+    ph.value = ""; ph.textContent = "이름 선택";
+    sel.appendChild(ph);
+    names.forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = n; o.textContent = n;
+      sel.appendChild(o);
+    });
+    sel.value = names.indexOf(selected) >= 0 ? selected : "";
+  }
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function nowHM() { var d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+
+  function chips(host, list, kind, multi) {
+    var box = $(host);
+    list.concat(["기타"]).forEach(function (label) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = label;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () {
+        var val = label === "기타" ? OTHER : label;
+        if (multi) {
+          var i = st[kind].indexOf(val);
+          if (i >= 0) st[kind].splice(i, 1); else st[kind].push(val);
+          b.setAttribute("aria-pressed", String(i < 0));
+        } else {
+          st[kind] = (st[kind] === val) ? null : val;
+          Array.prototype.forEach.call(box.children, function (c) {
+            c.setAttribute("aria-pressed", String(st[kind] !== null && (c.textContent === "기타" ? OTHER : c.textContent) === st[kind]));
+          });
+        }
+        var on = multi ? st[kind].indexOf(OTHER) >= 0 : st[kind] === OTHER;
+        $(host + "-other").classList.toggle("on", on);
+        refresh();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function minutes(hm) { var p = hm.split(":"); return +p[0] * 60 + +p[1]; }
+
+  function refresh() {
+    var missing = [];
+    var who = $("who").value;
+    var date = $("date").value, tc = $("tcall").value, ts = $("tstart").value, te = $("tend").value;
+    if (!who) missing.push("이름");
+    if (!date) missing.push("날짜");
+    if (!tc) missing.push("호출 시간");
+    if (!st.dept) missing.push("부서");
+    else if (st.dept === OTHER && !$("dept-other-txt").value.trim()) missing.push("부서 직접 입력");
+    if (!st.dest) missing.push("목적지");
+    else if (st.dest === OTHER && !$("dest-other-txt").value.trim()) missing.push("목적지 직접 입력");
+    if (!st.meth.length) missing.push("이송 방법");
+    else if (st.meth.indexOf(OTHER) >= 0 && !$("meth-other-txt").value.trim()) missing.push("방법 직접 입력");
+    if (!ts) missing.push("시작 시간");
+    if (!te) missing.push("종료 시간");
+
+    var dur = $("dur");
+    if (ts && te) {
+      var m = minutes(te) - minutes(ts);
+      if (m < 0) m += 1440;
+      dur.textContent = "소요 " + m + "분";
+    } else dur.textContent = "";
+
+    var go = $("go"), hint = $("hint");
+    if (missing.length) {
+      go.setAttribute("aria-disabled", "true"); go.href = "#";
+      hint.textContent = "남은 항목: " + missing.join(", "); hint.className = "hint warn";
+      return;
+    }
+    var q = [];
+    function add(k, v) { q.push(encodeURIComponent(k) + "=" + encodeURIComponent(v)); }
+    function pick(key, val, txtId) {
+      add("entry." + ID[key], val);
+      if (val === OTHER) add("entry." + ID[key] + ".other_option_response", $(txtId).value.trim());
+    }
+    add("usp", "pp_url");
+    add("entry." + ID.who, who);
+    add("entry." + ID.date, date);
+    add("entry." + ID.call, tc);
+    pick("dept", st.dept, "dept-other-txt");
+    pick("dest", st.dest, "dest-other-txt");
+    st.meth.forEach(function (v) { pick("meth", v, "meth-other-txt"); });
+    add("entry." + ID.start, ts);
+    add("entry." + ID.end, te);
+    go.href = FORM + "?" + q.join("&");
+    go.removeAttribute("aria-disabled");
+    hint.textContent = "폼이 열리면 내용을 확인하고 '제출'만 누르세요."; hint.className = "hint";
+  }
+
+  $("go").addEventListener("click", function (e) {
+    if (this.getAttribute("aria-disabled") === "true") e.preventDefault();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-now]"), function (b) {
+    b.addEventListener("click", function () { $(b.getAttribute("data-now")).value = nowHM(); refresh(); });
+  });
+  ["date","tcall","tstart","tend","dept-other-txt","dest-other-txt","meth-other-txt"].forEach(function (id) {
+    $(id).addEventListener("input", refresh);
+    $(id).addEventListener("change", refresh);
+  });
+
+  // 이름 선택 (이 폰에 기억)
+  $("who").addEventListener("change", function () { save(WHO_KEY, this.value); refresh(); });
+  $("reset").addEventListener("click", function () {
+    st.dept = null; st.dest = null; st.meth = [];
+    Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (c) { c.setAttribute("aria-pressed", "false"); });
+    Array.prototype.forEach.call(document.querySelectorAll(".other"), function (o) { o.classList.remove("on"); });
+    ["tcall","tstart","tend","dept-other-txt","dest-other-txt","meth-other-txt"].forEach(function (id) { $(id).value = ""; });
+    $("date").value = today();
+    window.scrollTo(0, 0);
+    refresh();
+  });
+
+  renderNames(savedWho);
+  chips("dept", DEPTS, "dept", false);
+  chips("dest", DESTS, "dest", false);
+  chips("meth", METHS, "meth", true);
+  $("date").value = today();
+  refresh();
+
+  // 홈 화면 앱 + 오프라인 열기
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
