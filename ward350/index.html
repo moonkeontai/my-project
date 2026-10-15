@@ -116,16 +116,6 @@ h1 {
   letter-spacing: .06em; text-wrap: balance; color: var(--cyan);
   text-shadow: 0 0 12px rgba(51, 228, 255, .7);
 }
-.who { display: flex; align-items: center; gap: 8px; font-size: .8125rem; color: var(--muted); letter-spacing: .1em; }
-.who select {
-  font: inherit; font-size: .9375rem; color: var(--fg); background: #060d18; max-width: 11em;
-  border: 1px solid var(--edge-hi); border-radius: 4px; padding: 6px 10px; letter-spacing: 0; min-height: 36px;
-}
-.mini {
-  font: inherit; font-weight: 700; font-size: 1.125rem; line-height: 1; color: var(--cyan); background: rgba(51, 228, 255, .07);
-  border: 1px solid var(--cyan); border-radius: 4px; width: 36px; height: 36px; padding: 0; cursor: pointer;
-}
-.addrow { flex: 1 1 100%; }
 
 /* 패널 */
 section {
@@ -260,15 +250,6 @@ input::placeholder { color: var(--muted); }
 <main>
   <header>
     <h1>이송기록</h1>
-    <div class="who">
-      <label for="who">직원</label>
-      <select id="who" aria-label="이송 직원"></select>
-      <button type="button" class="mini" id="add-name" aria-label="이름 추가">＋</button>
-    </div>
-    <div class="row addrow" id="name-add" hidden>
-      <input type="text" id="name-new" maxlength="20" placeholder="이름 입력" aria-label="추가할 이름" autocomplete="off">
-      <button type="button" class="btn" id="name-save">추가</button>
-    </div>
   </header>
 
   <section aria-labelledby="s1">
@@ -337,39 +318,13 @@ input::placeholder { color: var(--muted); }
 <script>
 (function () {
   var FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdrNP6VRGoIw8hB_Q9GboOX3_pikW-b5f44J2t2O4SoKeA0hQ/viewform";
-  var ID = { who: 1920673300, date: 725028595, call: 540011588, dept: 1315338996, dest: 408639836, meth: 1086772229, start: 1959113412, end: 1215132817 };
+  var ID = { date: 725028595, call: 540011588, dept: 1315338996, dest: 408639836, meth: 1086772229, start: 1959113412, end: 1215132817 };
   var DEPTS = ["350","300","220","250","320","270","370","390","ICU","ER","200","120"];
   var DESTS = ["병동","영상의학과 1층(심혈관 센터 포함)","영상의학과 지하","내시경센터","심장검사실","호흡기검사실","외래 (외래 검사실 포함)","인공신장실(AK)","전동","재활치료실(지하)","작업치료실(3층)","수술실(회복실)"];
   var METHS = ["침대","스트레처 카트","휠체어","보행","산소 포함"];
   var OTHER = "__other_option__";
-  var DEFAULT_NAMES = [];
-  var NAMES_KEY = "ward350.names", WHO_KEY = "ward350.who";
-
   var st = { dept: null, dest: null, meth: [] }; // 값 또는 OTHER
   var $ = function (id) { return document.getElementById(id); };
-
-  // 이 폰에만 저장 (막혀 있어도 동작에는 지장 없음)
-  function load(k, def) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
-  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-
-  var names = load(NAMES_KEY, DEFAULT_NAMES);
-  if (!Array.isArray(names)) names = DEFAULT_NAMES.slice();
-  var savedWho = load(WHO_KEY, "");
-  if (savedWho && names.indexOf(savedWho) < 0) names.push(savedWho);
-
-  function renderNames(selected) {
-    var sel = $("who");
-    while (sel.firstChild) sel.removeChild(sel.firstChild);
-    var ph = document.createElement("option");
-    ph.value = ""; ph.textContent = "이름 선택";
-    sel.appendChild(ph);
-    names.forEach(function (n) {
-      var o = document.createElement("option");
-      o.value = n; o.textContent = n;
-      sel.appendChild(o);
-    });
-    sel.value = names.indexOf(selected) >= 0 ? selected : "";
-  }
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function nowHM() { var d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
@@ -405,9 +360,7 @@ input::placeholder { color: var(--muted); }
 
   function refresh() {
     var missing = [];
-    var who = $("who").value;
     var date = $("date").value, tc = $("tcall").value, ts = $("tstart").value, te = $("tend").value;
-    if (!who) missing.push("이름");
     if (!date) missing.push("날짜");
     if (!tc) missing.push("호출 시간");
     if (!st.dept) missing.push("부서");
@@ -439,7 +392,6 @@ input::placeholder { color: var(--muted); }
       if (val === OTHER) add("entry." + ID[key] + ".other_option_response", $(txtId).value.trim());
     }
     add("usp", "pp_url");
-    add("entry." + ID.who, who);
     add("entry." + ID.date, date);
     add("entry." + ID.call, tc);
     pick("dept", st.dept, "dept-other-txt");
@@ -449,7 +401,7 @@ input::placeholder { color: var(--muted); }
     add("entry." + ID.end, te);
     go.href = FORM + "?" + q.join("&");
     go.removeAttribute("aria-disabled");
-    hint.textContent = "폼이 열리면 내용을 확인하고 '제출'만 누르세요."; hint.className = "hint";
+    hint.textContent = "폼이 열리면 이름을 고르고, 내용을 확인한 뒤 '제출'을 누르세요."; hint.className = "hint";
   }
 
   $("go").addEventListener("click", function (e) {
@@ -463,26 +415,6 @@ input::placeholder { color: var(--muted); }
     $(id).addEventListener("change", refresh);
   });
 
-  // 이름 선택 / 추가
-  $("who").addEventListener("change", function () { save(WHO_KEY, this.value); refresh(); });
-  $("add-name").addEventListener("click", function () {
-    var row = $("name-add");
-    row.hidden = !row.hidden;
-    if (!row.hidden) $("name-new").focus();
-  });
-  function addName() {
-    var v = $("name-new").value.replace(/\s+/g, " ").trim();
-    if (!v) return;
-    if (names.indexOf(v) < 0) { names.push(v); save(NAMES_KEY, names); }
-    renderNames(v);
-    save(WHO_KEY, v);
-    $("name-new").value = "";
-    $("name-add").hidden = true;
-    refresh();
-  }
-  $("name-save").addEventListener("click", addName);
-  $("name-new").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addName(); } });
-
   $("reset").addEventListener("click", function () {
     st.dept = null; st.dest = null; st.meth = [];
     Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (c) { c.setAttribute("aria-pressed", "false"); });
@@ -493,8 +425,6 @@ input::placeholder { color: var(--muted); }
     refresh();
   });
 
-  renderNames(savedWho);
-  if (!names.length) $("name-add").hidden = false; // 처음 쓰는 폰은 이름 입력칸을 열어 둔다
   chips("dept", DEPTS, "dept", false);
   chips("dest", DESTS, "dest", false);
   chips("meth", METHS, "meth", true);
