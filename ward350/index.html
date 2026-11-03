@@ -284,6 +284,10 @@ input::placeholder { color: var(--muted); }
       <div class="chips" id="meth"></div>
       <div class="row other" id="meth-other"><input type="text" id="meth-other-txt" placeholder="방법 직접 입력" aria-label="이송 방법 기타"></div>
     </div>
+    <div class="group">
+      <span class="lab">왕복 여부</span>
+      <div class="chips" id="round"></div>
+    </div>
   </section>
 
   <section aria-labelledby="s3">
@@ -318,21 +322,22 @@ input::placeholder { color: var(--muted); }
 <script>
 (function () {
   var FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdrNP6VRGoIw8hB_Q9GboOX3_pikW-b5f44J2t2O4SoKeA0hQ/viewform";
-  var ID = { date: 725028595, call: 540011588, dept: 1315338996, dest: 408639836, meth: 1086772229, start: 1959113412, end: 1215132817 };
+  var ID = { date: 725028595, call: 540011588, dept: 1315338996, dest: 408639836, meth: 1086772229, round: 795527424, start: 1959113412, end: 1215132817 };
   var DEPTS = ["350","300","220","250","320","270","370","390","ICU","ER","200","120"];
   var DESTS = ["병동","영상의학과 1층(심혈관 센터 포함)","영상의학과 지하","내시경센터","심장검사실","호흡기검사실","외래 (외래 검사실 포함)","인공신장실(AK)","전동","재활치료실(지하)","작업치료실(3층)","수술실(회복실)"];
   var METHS = ["침대","스트레처 카트","휠체어","보행","산소 포함"];
+  var ROUNDS = ["왕복","편도"];
   var OTHER = "__other_option__";
-  var st = { dept: null, dest: null, meth: [] }; // 값 또는 OTHER
+  var st = { dept: null, dest: null, meth: [], round: null }; // 값 또는 OTHER
   var $ = function (id) { return document.getElementById(id); };
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function nowHM() { var d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
   function today() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
 
-  function chips(host, list, kind, multi) {
+  function chips(host, list, kind, multi, noOther) {
     var box = $(host);
-    list.concat(["기타"]).forEach(function (label) {
+    list.concat(noOther ? [] : ["기타"]).forEach(function (label) {
       var b = document.createElement("button");
       b.type = "button"; b.className = "chip"; b.textContent = label;
       b.setAttribute("aria-pressed", "false");
@@ -349,7 +354,7 @@ input::placeholder { color: var(--muted); }
           });
         }
         var on = multi ? st[kind].indexOf(OTHER) >= 0 : st[kind] === OTHER;
-        $(host + "-other").classList.toggle("on", on);
+        if ($(host + "-other")) $(host + "-other").classList.toggle("on", on);
         refresh();
       });
       box.appendChild(b);
@@ -369,6 +374,7 @@ input::placeholder { color: var(--muted); }
     else if (st.dest === OTHER && !$("dest-other-txt").value.trim()) missing.push("목적지 직접 입력");
     if (!st.meth.length) missing.push("이송 방법");
     else if (st.meth.indexOf(OTHER) >= 0 && !$("meth-other-txt").value.trim()) missing.push("방법 직접 입력");
+    if (!st.round) missing.push("왕복 여부");
     if (!ts) missing.push("시작 시간");
     if (!te) missing.push("종료 시간");
 
@@ -397,6 +403,7 @@ input::placeholder { color: var(--muted); }
     pick("dept", st.dept, "dept-other-txt");
     pick("dest", st.dest, "dest-other-txt");
     st.meth.forEach(function (v) { pick("meth", v, "meth-other-txt"); });
+    if (st.round === "왕복") add("entry." + ID.round, "왕복");
     add("entry." + ID.start, ts);
     add("entry." + ID.end, te);
     go.href = FORM + "?" + q.join("&");
@@ -416,7 +423,7 @@ input::placeholder { color: var(--muted); }
   });
 
   $("reset").addEventListener("click", function () {
-    st.dept = null; st.dest = null; st.meth = [];
+    st.dept = null; st.dest = null; st.meth = []; st.round = null;
     Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (c) { c.setAttribute("aria-pressed", "false"); });
     Array.prototype.forEach.call(document.querySelectorAll(".other"), function (o) { o.classList.remove("on"); });
     ["tcall","tstart","tend","dept-other-txt","dest-other-txt","meth-other-txt"].forEach(function (id) { $(id).value = ""; });
@@ -428,6 +435,7 @@ input::placeholder { color: var(--muted); }
   chips("dept", DEPTS, "dept", false);
   chips("dest", DESTS, "dest", false);
   chips("meth", METHS, "meth", true);
+  chips("round", ROUNDS, "round", false, true);
   $("date").value = today();
   refresh();
 
