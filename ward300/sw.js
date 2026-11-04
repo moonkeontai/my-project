@@ -1,5 +1,5 @@
 // 접속되면 항상 최신 파일을 받고, 오프라인일 때만 저장해 둔 파일로 연다.
-var CACHE = "ward300-v2";
+var CACHE = "ward300-v3";
 var ASSETS = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", function (e) {

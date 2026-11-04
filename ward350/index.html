@@ -364,7 +364,41 @@ input::placeholder { color: var(--muted); }
 
   function minutes(hm) { var p = hm.split(":"); return +p[0] * 60 + +p[1]; }
 
+  // 입력 중인 내용을 폰에 임시 저장해 두었다가, 앱이 꺼졌다 다시 열려도 복원한다.
+  var KEY = "ward350.draft", TTL = 12 * 3600 * 1000;
+  var TXT = { dept: "dept-other-txt", dest: "dest-other-txt", meth: "meth-other-txt", round: "round-other-txt" };
+  function saveDraft() {
+    try {
+      var d = { t: Date.now(), who: $("who") ? $("who").value : "", date: $("date").value, tcall: $("tcall").value,
+        tstart: $("tstart").value, tend: $("tend").value,
+        dept: st.dept, dest: st.dest, meth: st.meth, round: st.round, txt: {} };
+      Object.keys(TXT).forEach(function (k) { d.txt[k] = $(TXT[k]).value; });
+      localStorage.setItem(KEY, JSON.stringify(d));
+    } catch (e) {}
+  }
+  function restoreDraft() {
+    try {
+      var d = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (!d || !d.t || Date.now() - d.t > TTL) return;
+      if (d.who && $("who")) $("who").value = d.who;
+      if (d.date) $("date").value = d.date;
+      $("tcall").value = d.tcall || ""; $("tstart").value = d.tstart || ""; $("tend").value = d.tend || "";
+      st.dept = d.dept || null; st.dest = d.dest || null;
+      st.meth = Array.isArray(d.meth) ? d.meth : []; st.round = Array.isArray(d.round) ? d.round : [];
+      Object.keys(TXT).forEach(function (k) { $(TXT[k]).value = (d.txt && d.txt[k]) || ""; });
+      [["dept", false], ["dest", false], ["meth", true], ["round", true]].forEach(function (a) {
+        var k = a[0], multi = a[1];
+        Array.prototype.forEach.call($(k).children, function (c) {
+          var v = c.textContent === "기타" ? OTHER : c.textContent;
+          c.setAttribute("aria-pressed", String(multi ? st[k].indexOf(v) >= 0 : st[k] === v));
+        });
+        $(k + "-other").classList.toggle("on", multi ? st[k].indexOf(OTHER) >= 0 : st[k] === OTHER);
+      });
+    } catch (e) {}
+  }
+
   function refresh() {
+    saveDraft();
     var missing = [];
     var date = $("date").value, tc = $("tcall").value, ts = $("tstart").value, te = $("tend").value;
     if (!date) missing.push("날짜");
@@ -440,6 +474,7 @@ input::placeholder { color: var(--muted); }
   chips("meth", METHS, "meth", true);
   chips("round", ROUNDS, "round", true);
   $("date").value = today();
+  restoreDraft();
   refresh();
 
   // 홈 화면 앱 + 오프라인 열기
