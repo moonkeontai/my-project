@@ -287,7 +287,7 @@ input::placeholder { color: var(--muted); }
     <div class="group">
       <span class="lab">왕복 여부</span>
       <div class="chips" id="round"></div>
-      <div class="row other" id="round-other"><input type="text" id="round-other-txt" placeholder="왕복 여부 직접 입력" aria-label="왕복 여부 기타"></div>
+      <div class="row other" id="round-other"><input type="text" id="round-other-txt" placeholder="" aria-label="왕복 여부 기타"></div>
     </div>
   </section>
 
@@ -375,8 +375,6 @@ input::placeholder { color: var(--muted); }
     else if (st.dest === OTHER && !$("dest-other-txt").value.trim()) missing.push("목적지 직접 입력");
     if (!st.meth.length) missing.push("이송 방법");
     else if (st.meth.indexOf(OTHER) >= 0 && !$("meth-other-txt").value.trim()) missing.push("방법 직접 입력");
-    if (!st.round.length) missing.push("왕복 여부");
-    else if (st.round.indexOf(OTHER) >= 0 && !$("round-other-txt").value.trim()) missing.push("왕복 여부 직접 입력");
     if (!ts) missing.push("시작 시간");
     if (!te) missing.push("종료 시간");
 
@@ -405,7 +403,10 @@ input::placeholder { color: var(--muted); }
     pick("dept", st.dept, "dept-other-txt");
     pick("dest", st.dest, "dest-other-txt");
     st.meth.forEach(function (v) { pick("meth", v, "meth-other-txt"); });
-    st.round.forEach(function (v) { pick("round", v, "round-other-txt"); });
+    st.round.forEach(function (v) {
+      if (v === OTHER && !$("round-other-txt").value.trim()) return; // 기타를 눌렀지만 비워 두면 보내지 않음
+      pick("round", v, "round-other-txt");
+    });
     add("entry." + ID.start, ts);
     add("entry." + ID.end, te);
     go.href = FORM + "?" + q.join("&");
