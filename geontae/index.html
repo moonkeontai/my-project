@@ -258,6 +258,7 @@ input::placeholder { color: var(--muted); }
     <div class="who">
       직원
       <select id="who" aria-label="이송 직원">
+        <option value="" selected disabled>이름 선택</option>
         <option>문건태</option>
         <option>간호조무사</option>
       </select>
@@ -379,6 +380,7 @@ input::placeholder { color: var(--muted); }
   function refresh() {
     var missing = [];
     var date = $("date").value, tc = $("tcall").value, ts = $("tstart").value, te = $("tend").value;
+    if (!$("who").value) missing.push("이름");
     if (!date) missing.push("날짜");
     if (!tc) missing.push("호출 시간");
     if (!st.dept) missing.push("부서");
